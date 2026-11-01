@@ -1,20 +1,16 @@
-LUMI+ GESTÃO V10 — ETAPA 2
+LUMI+ GESTÃO V10 — PRÉVIA 2.0
 
-Inclui:
-- Login Supabase Auth e acesso restrito a perfil role=admin.
-- Dashboard e consultas de clientes, financeiro e créditos.
-- Formulário de ativação via RPC activate_customer_v10.
-- Formulário de renovação via RPC renew_customer_v10.
-- Confirmação explícita antes de cada operação e atualização das consultas após sucesso.
-- Cálculo do vencimento por meses de calendário; cliente em dia soma os meses à data atual de vencimento; cliente vencido usa a data atual como base.
+Arquivos para publicar na raiz do repositório GitHub Pages:
+- index.html
+- styles.css
+- app-v10.js
+- preview-v2.js
+- LEIA-ME.txt
 
-Ainda não inclui:
-- Compra manual de créditos.
-- Confirmação posterior de Pix pendente.
-- Edição ou exclusão de clientes.
+Esta prévia mantém o login Supabase e as operações RPC de ativação/renovação já existentes. As novas telas de Todos os Clientes, Livro Caixa e Relatórios são uma prévia de interface com consultas de leitura.
 
 IMPORTANTE:
-- Faça backup/validação antes de usar operações reais.
-- Não execute operações fictícias para testar, pois as RPCs gravam dados e consomem créditos.
-- O navegador usa somente a chave publishable. Mantenha RLS e funções SECURITY DEFINER protegidas.
-- Não há service_role key neste pacote.
+- Não contém cadastro de lançamentos para Renda Extra nem operações de compra de créditos.
+- O saldo bancário ainda não é conciliado automaticamente: é necessário validar saldo inicial, contas e critérios de status antes de habilitar débitos/créditos.
+- Não executar operações financeiras como teste sem conferir o cliente, plano, valor, status e saldo de créditos.
+- Não altera nem apaga dados do Supabase.
