@@ -1,0 +1,1 @@
+# lumi-gestao-v10
