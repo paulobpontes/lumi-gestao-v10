@@ -47,14 +47,15 @@
     const receivable=incomes.filter(x=>!x.received_at && !String(x.status||"").toLowerCase().match(/received|receb/)).reduce((s,x)=>s+Number(x.amount||0),0);
     const payable=expenses.filter(x=>!x.paid_at && !String(x.status||"").toLowerCase().match(/paid|pago/)).reduce((s,x)=>s+Number(x.amount||0),0);
     $("cash-projected").textContent=brl(currentBalance+receivable-payable);
-    document.querySelectorAll(".cash-tab").forEach(b=>b.addEventListener("click",()=>{
+    document.querySelectorAll(".cash-tab").forEach(b=>{if(b.dataset.cashBound)return;b.dataset.cashBound="1";b.addEventListener("click",()=>{
       document.querySelectorAll(".cash-tab").forEach(x=>x.classList.toggle("active",x===b));
       const key=b.dataset.cash;
       const data=key==="receitas"?incomes:key==="despesas"?expenses:key==="receber"?incomes.filter(x=>!x.received_at):key==="pagar"?expenses.filter(x=>!x.paid_at):[];
       if(key==="extra") $("cash-content").innerHTML='<p class="muted">Área Renda Extra — Aplicativos preparada na interface. O formulário de lançamento e a conciliação de despesas serão habilitados após definir a conta financeira e as categorias.</p>';
-      else if(key==="resumo") $("cash-content").innerHTML='<p class="muted">Resumo de movimentações do mês. Os indicadores acima são calculados a partir dos lançamentos disponíveis; o saldo bancário inicial ainda precisa ser conciliado por conta.</p>';
+      else if(key==="resumo") $("cash-content").innerHTML='<p class="muted">O saldo consolidado é o valor real informado manualmente. As receitas e despesas permanecem detalhadas nos lançamentos, sem somar novamente o histórico ao saldo atual.</p>';
       else $("cash-content").innerHTML=data.slice(0,40).map(x=>`<div class="row"><span>${esc(x.description)}<br><small class="muted">${date(x.income_date||x.expense_date)} · ${esc(x.status||"")}</small></span><b>${brl(x.amount)}</b></div>`).join("")||'<p class="muted">Nenhum lançamento encontrado.</p>';
-    }));
+    });
+    });
   }
   async function refresh() {
     const session=await db.auth.getSession(); if(!session.data.session) return;
