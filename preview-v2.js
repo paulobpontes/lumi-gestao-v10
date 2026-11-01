@@ -44,13 +44,15 @@
     // O saldo consolidado é o valor real informado manualmente; não soma o histórico novamente.
     const currentBalance = Number(balanceAccount?.opening_balance || 0);
     $("cash-balance").textContent=brl(currentBalance); $("cash-income").textContent=brl(paidIn); $("cash-expense").textContent=brl(paidOut);
-    const receivable=incomes.filter(x=>!x.received_at && !String(x.status||"").toLowerCase().match(/received|receb/)).reduce((s,x)=>s+Number(x.amount||0),0);
-    const payable=expenses.filter(x=>!x.paid_at && !String(x.status||"").toLowerCase().match(/paid|pago/)).reduce((s,x)=>s+Number(x.amount||0),0);
+    const isIncomePaid=x=>String(x.status||"").toLowerCase().match(/received|receb/)||Boolean(x.received_at);
+    const isExpensePaid=x=>String(x.status||"").toLowerCase().match(/paid|pago/)||Boolean(x.paid_at);
+    const receivable=incomes.filter(x=>!isIncomePaid(x)).reduce((s,x)=>s+Number(x.amount||0),0);
+    const payable=expenses.filter(x=>!isExpensePaid(x)).reduce((s,x)=>s+Number(x.amount||0),0);
     $("cash-projected").textContent=brl(currentBalance+receivable-payable);
     document.querySelectorAll(".cash-tab").forEach(b=>{if(b.dataset.cashBound)return;b.dataset.cashBound="1";b.addEventListener("click",()=>{
       document.querySelectorAll(".cash-tab").forEach(x=>x.classList.toggle("active",x===b));
       const key=b.dataset.cash;
-      const data=key==="receitas"?incomes:key==="despesas"?expenses:key==="receber"?incomes.filter(x=>!x.received_at):key==="pagar"?expenses.filter(x=>!x.paid_at):[];
+      const data=key==="receitas"?incomes:key==="despesas"?expenses:key==="receber"?incomes.filter(x=>!isIncomePaid(x)):key==="pagar"?expenses.filter(x=>!isExpensePaid(x)):[];
       if(key==="extra") $("cash-content").innerHTML='<p class="muted">Área Renda Extra — Aplicativos preparada na interface. O formulário de lançamento e a conciliação de despesas serão habilitados após definir a conta financeira e as categorias.</p>';
       else if(key==="resumo") $("cash-content").innerHTML='<p class="muted">O saldo consolidado é o valor real informado manualmente. As receitas e despesas permanecem detalhadas nos lançamentos, sem somar novamente o histórico ao saldo atual.</p>';
       else $("cash-content").innerHTML=data.slice(0,40).map(x=>`<div class="row"><span>${esc(x.description)}<br><small class="muted">${date(x.income_date||x.expense_date)} · ${esc(x.status||"")}</small></span><b>${brl(x.amount)}</b></div>`).join("")||'<p class="muted">Nenhum lançamento encontrado.</p>';
@@ -67,7 +69,7 @@
         db.from("expenses").select("id,description,amount,expense_date,status,paid_at,visibility,category").is("archived_at",null).order("expense_date",{ascending:false}).limit(500),
         db.from("finance_accounts").select("id,account_code,display_name,opening_balance,opening_date").eq("account_code","lumi_business").eq("active",true).maybeSingle()
       ]);
-      if(c.error) throw c.error; if(a.error) throw a.error; customers=c.data||[]; stock=s.data||[]; incomes=i.data||[]; expenses=e.data||[]; balanceAccount=a.data||null;
+      if(c.error) throw c.error; if(s.error) throw s.error; if(i.error) throw i.error; if(e.error) throw e.error; if(a.error) throw a.error; customers=c.data||[]; stock=s.data||[]; incomes=i.data||[]; expenses=e.data||[]; balanceAccount=a.data||null;
       if($("balance-input") && document.activeElement!==$("balance-input")) $("balance-input").value=Number(balanceAccount?.opening_balance||0).toFixed(2);
       if($("balance-updated")) $("balance-updated").textContent=balanceAccount?.opening_date ? "Última atualização: "+date(balanceAccount.opening_date) : "Saldo ainda não atualizado";
       const active=customers.filter(x=>x.due_date>=today() && ["Ativo","Aguardando Pix"].includes(statusLabel(x))).length;
