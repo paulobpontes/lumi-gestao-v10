@@ -86,8 +86,9 @@
     $("report-output").innerHTML=`<div class="calc">Período: ${date(from)} até ${date(to)}<br>${labels[category]||labels.all}</div><p class="muted">Prévia de relatório. Os filtros de data serão aplicados aos relatórios detalhados na etapa de consolidação.</p>`;
   });
   $("balance-save")?.addEventListener("click", async () => {
-    const amount=Number($("balance-input")?.value);
-    if(!Number.isFinite(amount)||amount<0){window.alert("Informe um saldo válido, igual ou maior que zero.");return;}
+    const raw=$("balance-input")?.value;
+    const amount=Number(raw);
+    if(raw===undefined||raw.trim()===""||!Number.isFinite(amount)||amount<0){window.alert("Informe um saldo válido, igual ou maior que zero.");return;}
     if(!balanceAccount){window.alert("A conta consolidada não foi encontrada.");return;}
     if(!window.confirm("Confirma atualizar o saldo consolidado para "+brl(amount)+"? Este valor será a referência real atual da Lumi+. Não serão criados lançamentos financeiros.")) return;
     const button=$("balance-save"); button.disabled=true; button.textContent="Salvando...";
