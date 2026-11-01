@@ -8,7 +8,7 @@
   const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-"); };
   const date = s => s ? new Date(s + "T12:00:00").toLocaleDateString("pt-BR") : "—";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  let customers = [], stock = [], incomes = [], expenses = [];
+  let customers = [], stock = [], incomes = [], expenses = [], balanceAccount = null;
   const daysFromToday = s => Math.round((new Date(s+"T12:00:00") - new Date(today()+"T12:00:00"))/86400000);
   const statusLabel = c => {
     if (c.due_date < today()) return "Expirado";
@@ -41,11 +41,12 @@
   function renderCash() {
     const paidIn=incomes.filter(x=>String(x.status||"").toLowerCase().includes("received")||String(x.status||"").toLowerCase().includes("receb")||x.received_at).reduce((s,x)=>s+Number(x.amount||0),0);
     const paidOut=expenses.filter(x=>String(x.status||"").toLowerCase().includes("paid")||String(x.status||"").toLowerCase().includes("pago")||x.paid_at).reduce((s,x)=>s+Number(x.amount||0),0);
-    // Indicador de movimentação líquida do período; não representa saldo bancário conciliado.
-    $("cash-balance").textContent=brl(paidIn-paidOut); $("cash-income").textContent=brl(paidIn); $("cash-expense").textContent=brl(paidOut);
+    // O saldo consolidado é o valor real informado manualmente; não soma o histórico novamente.
+    const currentBalance = Number(balanceAccount?.opening_balance || 0);
+    $("cash-balance").textContent=brl(currentBalance); $("cash-income").textContent=brl(paidIn); $("cash-expense").textContent=brl(paidOut);
     const receivable=incomes.filter(x=>!x.received_at && !String(x.status||"").toLowerCase().match(/received|receb/)).reduce((s,x)=>s+Number(x.amount||0),0);
     const payable=expenses.filter(x=>!x.paid_at && !String(x.status||"").toLowerCase().match(/paid|pago/)).reduce((s,x)=>s+Number(x.amount||0),0);
-    $("cash-projected").textContent=brl(paidIn-paidOut+receivable-payable);
+    $("cash-projected").textContent=brl(currentBalance+receivable-payable);
     document.querySelectorAll(".cash-tab").forEach(b=>b.addEventListener("click",()=>{
       document.querySelectorAll(".cash-tab").forEach(x=>x.classList.toggle("active",x===b));
       const key=b.dataset.cash;
@@ -58,13 +59,16 @@
   async function refresh() {
     const session=await db.auth.getSession(); if(!session.data.session) return;
     try {
-      const [c,s,i,e]=await Promise.all([
+      const [c,s,i,e,a]=await Promise.all([
         db.from("customers").select("id,name,server,plan,price,due_date,status,internal_notes").is("archived_at",null).order("name").limit(2000),
         db.from("server_credit_stock").select("server_name,available_credits").order("server_name"),
         db.from("incomes").select("id,description,amount,income_date,status,received_at,visibility,source").is("archived_at",null).order("income_date",{ascending:false}).limit(500),
-        db.from("expenses").select("id,description,amount,expense_date,status,paid_at,visibility,category").is("archived_at",null).order("expense_date",{ascending:false}).limit(500)
+        db.from("expenses").select("id,description,amount,expense_date,status,paid_at,visibility,category").is("archived_at",null).order("expense_date",{ascending:false}).limit(500),
+        db.from("finance_accounts").select("id,account_code,display_name,opening_balance,opening_date").eq("account_code","lumi_business").eq("active",true).maybeSingle()
       ]);
-      if(c.error) throw c.error; customers=c.data||[]; stock=s.data||[]; incomes=i.data||[]; expenses=e.data||[];
+      if(c.error) throw c.error; if(a.error) throw a.error; customers=c.data||[]; stock=s.data||[]; incomes=i.data||[]; expenses=e.data||[]; balanceAccount=a.data||null;
+      if($("balance-input") && document.activeElement!==$("balance-input")) $("balance-input").value=Number(balanceAccount?.opening_balance||0).toFixed(2);
+      if($("balance-updated")) $("balance-updated").textContent=balanceAccount?.opening_date ? "Última atualização: "+date(balanceAccount.opening_date) : "Saldo ainda não atualizado";
       const active=customers.filter(x=>x.due_date>=today() && ["Ativo","Aguardando Pix"].includes(statusLabel(x))).length;
       const expired=customers.filter(x=>x.due_date<today()).length;
       const soon=customers.filter(x=>x.due_date>=today() && daysFromToday(x.due_date)<=3 && ["Ativo","Aguardando Pix"].includes(statusLabel(x))).length;
@@ -81,6 +85,22 @@
     const labels={customers:`${customers.length} clientes cadastrados`,finance:`${incomes.length} receitas e ${expenses.length} despesas consultáveis`,credits:`${stock.length} servidores com saldo consultável`,extra:"Os lançamentos de Renda Extra ainda não estão habilitados",activity:"Atividades disponíveis serão consolidadas na próxima etapa",all:`${customers.length} clientes · ${incomes.length} receitas · ${expenses.length} despesas`};
     $("report-output").innerHTML=`<div class="calc">Período: ${date(from)} até ${date(to)}<br>${labels[category]||labels.all}</div><p class="muted">Prévia de relatório. Os filtros de data serão aplicados aos relatórios detalhados na etapa de consolidação.</p>`;
   });
+  $("balance-save")?.addEventListener("click", async () => {
+    const amount=Number($("balance-input")?.value);
+    if(!Number.isFinite(amount)||amount<0){window.alert("Informe um saldo válido, igual ou maior que zero.");return;}
+    if(!balanceAccount){window.alert("A conta consolidada não foi encontrada.");return;}
+    if(!window.confirm("Confirma atualizar o saldo consolidado para "+brl(amount)+"? Este valor será a referência real atual da Lumi+. Não serão criados lançamentos financeiros.")) return;
+    const button=$("balance-save"); button.disabled=true; button.textContent="Salvando...";
+    try {
+      const result=await db.from("finance_accounts").update({opening_balance:amount,opening_date:today()}).eq("id",balanceAccount.id).select("id,account_code,display_name,opening_balance,opening_date").single();
+      if(result.error) throw result.error; balanceAccount=result.data; renderCash();
+      $("balance-updated").textContent="Última atualização: "+date(balanceAccount.opening_date);
+      const notice=$("notice"); notice.textContent="Saldo consolidado atualizado com sucesso."; notice.classList.remove("hide"); notice.classList.remove("error");
+    } catch(err){window.alert("Não foi possível salvar o saldo: "+(err.message||err));}
+    finally{button.disabled=false;button.textContent="Salvar saldo";}
+  });
+  $("mobile-more-trigger")?.addEventListener("click",()=>{const menu=$("mobile-more-menu");if(!menu)return;const open=menu.classList.contains("hide");menu.classList.toggle("hide",!open);$("mobile-more-trigger").setAttribute("aria-expanded",String(open));});
+  document.querySelectorAll("#mobile-more-menu [data-page]").forEach(button=>button.addEventListener("click",()=>{$("mobile-more-menu").classList.add("hide");$("mobile-more-trigger")?.setAttribute("aria-expanded","false");}));
   const now=today(); if($("report-to")) $("report-to").value=now; if($("report-from")){const d=new Date();d.setDate(1);$("report-from").value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),"01"].join("-");}
   document.querySelectorAll('[data-page="all-customers"],[data-page="cashbook"],[data-page="reports"]').forEach(b=>b.addEventListener("click",()=>setTimeout(refresh,150)));
   db.auth.onAuthStateChange((event,session)=>{if(session) setTimeout(refresh,200)});
