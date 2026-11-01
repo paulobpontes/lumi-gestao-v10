@@ -1,13 +1,20 @@
-LUMI+ GESTÃO V10 — PRIMEIRA ETAPA
-
-Arquivos: index.html, styles.css e app-v10.js.
+LUMI+ GESTÃO V10 — ETAPA 2
 
 Inclui:
-- Login Supabase Auth.
-- Liberação somente para usuário com perfil role=admin.
-- Consulta somente de leitura de clientes, receitas, despesas e estoque.
-- Dashboard responsivo.
+- Login Supabase Auth e acesso restrito a perfil role=admin.
+- Dashboard e consultas de clientes, financeiro e créditos.
+- Formulário de ativação via RPC activate_customer_v10.
+- Formulário de renovação via RPC renew_customer_v10.
+- Confirmação explícita antes de cada operação e atualização das consultas após sucesso.
+- Cálculo do vencimento por meses de calendário; cliente em dia soma os meses à data atual de vencimento; cliente vencido usa a data atual como base.
 
-Não inclui operações de escrita: não cadastra/edita/exclui clientes, não renova, não registra pagamentos, não compra nem consome créditos. Não cria ou remove usuários/perfis. Não contém service_role.
+Ainda não inclui:
+- Compra manual de créditos.
+- Confirmação posterior de Pix pendente.
+- Edição ou exclusão de clientes.
 
-A chave publishable é utilizada no navegador. Mantenha as políticas RLS do Supabase ativas.
+IMPORTANTE:
+- Faça backup/validação antes de usar operações reais.
+- Não execute operações fictícias para testar, pois as RPCs gravam dados e consomem créditos.
+- O navegador usa somente a chave publishable. Mantenha RLS e funções SECURITY DEFINER protegidas.
+- Não há service_role key neste pacote.
