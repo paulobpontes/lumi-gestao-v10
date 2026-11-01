@@ -1,16 +1,34 @@
-LUMI+ GESTÃO V10 — PRÉVIA 2.0
+LUMI+ GESTÃO 2.1
 
-Arquivos para publicar na raiz do repositório GitHub Pages:
+Arquivos publicados na raiz do repositório GitHub Pages:
 - index.html
 - styles.css
 - app-v10.js
 - preview-v2.js
 - LEIA-ME.txt
 
-Esta prévia mantém o login Supabase e as operações RPC de ativação/renovação já existentes. As novas telas de Todos os Clientes, Livro Caixa e Relatórios são uma prévia de interface com consultas de leitura.
+VERSÃO 2.1
+- Navegação inferior otimizada para celular: Início, Clientes, Caixa, Créditos e Mais.
+- Livro Caixa com saldo consolidado informado manualmente pelo administrador.
+- O saldo consolidado representa o dinheiro real disponível nas contas e carteiras na última atualização.
+- Saldo previsto = saldo consolidado atual + valores a receber - valores a pagar.
+- A atualização manual do saldo não cria receita, despesa ou qualquer outro lançamento.
+- A conta financeira ativa é única: Saldo consolidado Lumi+.
+- O acesso ao painel é restrito ao perfil administrador Paulo.
 
-IMPORTANTE:
-- Não contém cadastro de lançamentos para Renda Extra nem operações de compra de créditos.
-- O saldo bancário ainda não é conciliado automaticamente: é necessário validar saldo inicial, contas e critérios de status antes de habilitar débitos/créditos.
-- Não executar operações financeiras como teste sem conferir o cliente, plano, valor, status e saldo de créditos.
-- Não altera nem apaga dados do Supabase.
+DADOS
+- O banco de dados do projeto Supabase lumi-gestao foi limpo dos registros de teste.
+- Estrutura, funções e políticas de segurança foram preservadas.
+- Não há clientes, renovações, pagamentos, receitas, despesas ou movimentações de créditos cadastrados.
+- Saldo inicial consolidado: R$ 0,00.
+
+SEGURANÇA E OPERAÇÃO
+- O login Supabase e as operações RPC de ativação/renovação permanecem ativos.
+- Operações financeiras e de estoque exigem perfil administrador.
+- Não publique chaves secretas no frontend; a chave publishable usada no site é pública por definição.
+- A proteção de senhas vazadas ainda precisa ser habilitada nas configurações de Auth do projeto Supabase.
+
+IMPORTANTE
+- O saldo consolidado é uma referência manual do valor real disponível. Atualize-o sempre que desejar reconciliar o dinheiro em caixa/contas.
+- Receitas e despesas continuam registradas separadamente no Livro Caixa.
+- O saldo previsto considera os valores pendentes a receber e a pagar, sem somar novamente o histórico já incluído no saldo real.
